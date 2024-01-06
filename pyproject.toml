@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "bug-buddy"
+version = "0.1.0"
+description = "Auto cache and track Python exceptions via Python decorators."
+authors = ["Spencer Seale <spencerseale17@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "bug_buddy"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
