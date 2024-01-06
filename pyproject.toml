@@ -5,11 +5,34 @@ description = "Auto cache and track Python exceptions via Python decorators."
 authors = ["Spencer Seale <spencerseale17@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "bug_buddy"}]
+packages = [{include = "bug_buddy", from = "src/python"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.1.11"
+pre-commit = "^3.6.0"
+black = "^23.12.1"
+pytest = "^7.4.4"
+
+[tool.black]
+line-length = 99
+
+[tool.ruff]
+select = [
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "I",  # isort
+  "PD", # pandas-vet
+  "T20",  # flake8-print
+]
+line-length = 99
+fix = true
+logger-objects = ["logging_setup.logger"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::DeprecationWarning"]
 
 [build-system]
 requires = ["poetry-core"]
