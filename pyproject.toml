@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bug-buddy"
-version = "1.0.1"
+version = "1.0.3"
 description = "Auto cache and track Python exceptions via Python decorators."
 authors = ["Spencer Seale <spencerseale17@gmail.com>"]
 license = "MIT"
