@@ -3,7 +3,7 @@
 
 from attrs import define
 
-from bug_buddy.di_container import BugBuddyInjector
+from bug_buddy._di_container import BugBuddyInjector
 
 
 @define

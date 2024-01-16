@@ -15,14 +15,23 @@ class Issue:
     """Normalized Remote Issue."""
 
     id: int
+    """Issue ID."""
     title: str
+    """Issue title."""
     state: str
+    """Issue state."""
     project_id: int
+    """Remote project ID."""
     author: tuple[str, str, str]
+    """Author name, username, and state."""
     created_at: str
+    """Time issue created."""
     updated_at: str
+    """Time issue updated."""
     description: str
+    """Issue description."""
     labels: list[str] = field(factory=list)
+    """Issue labels."""
 
     def _clean(self) -> str:
         """Clean attributes so they're ready for df transformation."""
@@ -66,13 +75,13 @@ class GitlabIssuesApi:
     """GitLab Project-pinned Issues API."""
 
     url: str = "https://gitlab.com/api/v4"
+    """GitLab API URL."""
     endpoint: str = field(default="projects/{project_id}/issues")
     """Project-pinned GitLab issues endpoint."""
 
     @endpoint.validator
     def _validate_endpoint(self, attribute: str, value: str) -> str:
         """Validate endpoint doesn't start with a forward slash."""
-
         if value.startswith("/"):
             raise ValueError("Endpoint cannot start with a forward slash.")
 
@@ -81,21 +90,25 @@ class GitlabIssuesApi:
 
     @token.default
     def _token_default(self) -> str:
-        """Default token"""
-
         return os.environ["GITLAB_TOKEN"]
 
     logger: Logger = field()
+    """Logging instance."""
 
     @logger.default
     def _logger_default(self) -> Logger:
-        """Default logger"""
-
         return getLogger(__name__)
 
     @staticmethod
     def _normalize_itype(response_map: Mapping[str, any]) -> Issue:
-        """Normalize issue type."""
+        """Normalize issue type.
+
+        Args:
+            response_map: responsing mapping from GitLab API.
+
+        Returns:
+            Normalized Issue type.
+        """
 
         return Issue(
             id=response_map["id"],
@@ -119,6 +132,17 @@ class GitlabIssuesApi:
         id: Optional[int] = None,
         normalize: bool = True,
     ) -> Union[Issue, list[dict[str, any]]]:
+        """Project-pinned issues.
+
+        Args:
+            project_id: project ID.
+            id: issue ID.
+            normalize: whether to normalize issue type.
+
+        Returns:
+            Project-pinned issues, normalzied or raw.
+        """
+
         self.logger.debug("Getting issues for project %s", project_id)
 
         resp = requests.get(
@@ -145,7 +169,17 @@ class GitlabIssuesApi:
         labels: Optional[list[str]] = None,
         title: Optional[str] = None,
     ) -> Issue:
-        """Create an issue."""
+        """Create an issue.
+
+        Args:
+            project_id: project ID.
+            description: issue description.
+            labels: issue labels.
+            title: issue title.
+
+        Returns:
+            Created issue, normalized.
+        """
 
         title = title or "BugBuddy-" + str(uuid.uuid4())
         # always include BugBuddy label
@@ -170,20 +204,3 @@ class GitlabIssuesApi:
         self.logger.debug("Response code: %s", resp.status_code)
         issue = resp.json()
         return self._normalize_itype(issue)
-
-
-if __name__ == "__main__":
-    api = GitlabIssuesApi()
-    issues = api.get_issues(43922234, id=13)
-    # print(issues)
-    # print(len(issues))
-
-    issues[0].cache()
-
-    # issue = api.create_issue(
-    #     project_id=43922234,
-    #     description="Test issue description.",
-    #     labels=["ValueError"]
-    # )
-
-    # print(issue)
