@@ -40,7 +40,26 @@ def main() -> None:
     pd.DataFrame({"a": [1, 2, 3], "b": [4, 5]})
 ```
 
-Running this code, Bug Buddy returns the traceback as well as a logging statement identifying that bug has been cached and uploaded to a project ID at the remote if one was specified.
+Running this code, Bug Buddy returns the exception traceback just as you'd normally expect, but an issue is logged to Gitlab
+
+![alt text](src/images/gl_issue_result.png)
+
+In addition to the remote, the issue is cached to `$HOME/.bug_buddy.cache`, to enable offline bug tracking.
+```
+[
+    {
+        "id": 140872896,
+        "title": "BugBuddy-4a8dd26c-2faa-4780-b01d-75965cf4896a",
+        "state": "opened",
+        "project_id": 43922234,
+        "author": "Spencer Seale_spencerseale_active",
+        "created_at": "2024-01-16T00:14:22.388Z",
+        "updated_at": "2024-01-16T00:14:22.388Z",
+        "description": "### Traceback\n| File | Callable | Line | Code |\n| --- | --- | --- | --- |\n| /Users/sseale/personal/bug-buddy/main.py | main | 18 | pd.DataFrame({\"a\": [1, 2, 3], \"b\": [4, 5]}) |\n| /Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/frame.py | \\_\\_init\\_\\_ | 733 | mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager) |\n| /Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/internals/construction.py | dict\\_to\\_mgr | 503 | return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy) |\n| /Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/internals/construction.py | arrays\\_to\\_mgr | 114 | index = _extract_index(arrays) |\n| /Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/internals/construction.py | \\_extract\\_index | 677 | raise ValueError(\"All arrays must be of the same length\") |\n\n<details><summary>Raw traceback</summary>\nTraceback (most recent call last):\n  File \"/Users/sseale/personal/bug-buddy/src/python/bug_buddy/listener.py\", line 149, in wrapper\n    actual = runner(*args, **kwargs)\n  File \"/Users/sseale/personal/bug-buddy/main.py\", line 18, in main\n    pd.DataFrame({\"a\": [1, 2, 3], \"b\": [4, 5]})\n  File \"/Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/frame.py\", line 733, in __init__\n    mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)\n  File \"/Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/internals/construction.py\", line 503, in dict_to_mgr\n    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)\n  File \"/Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/internals/construction.py\", line 114, in arrays_to_mgr\n    index = _extract_index(arrays)\n  File \"/Users/sseale/miniconda3/envs/bug-buddy-py310/lib/python3.10/site-packages/pandas/core/internals/construction.py\", line 677, in _extract_index\n    raise ValueError(\"All arrays must be of the same length\")\nValueError: All arrays must be of the same length\n\n</details>",
+        "labels": "BugBuddy_ValueError"
+    }
+]
+```
 
 ## Parameters
 
