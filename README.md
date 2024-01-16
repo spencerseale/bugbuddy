@@ -21,6 +21,13 @@ pip install bug-buddy
 
 ## Usage
 
+First, set your remote's API token as an environment variable for your remote, these can be personal, project, or group access tokens.
+
+| Remote | Env Variable |
+| --- | --- |
+Gitlab | $GITLAB_TOKEN |
+Github | $GITHUB_TOKEN |
+
 To use Bug Buddy, you need to import it and decorate the top-level callable of your code with `@bug_buddy`. For example:
 
 ```
@@ -40,7 +47,11 @@ def main() -> None:
     pd.DataFrame({"a": [1, 2, 3], "b": [4, 5]})
 ```
 
-Running this code, Bug Buddy returns the exception traceback just as you'd normally expect, but an issue is logged to Gitlab
+Running this code, Bug Buddy returns the exception traceback just as you'd normally expect.
+
+![alt text](src/images/stdout.png)
+
+As requested in `@bug_buddy`, the issue is logged to Gitlab
 
 ![alt text](src/images/gl_issue_result.png)
 
@@ -61,6 +72,10 @@ In addition to the remote, the issue is cached to `$HOME/.bug_buddy.cache`, to e
 ]
 ```
 
+### CLI
+
+I'm still determining whether there is a need/desire to implement bug-buddy as a CLI tool. Its programatic integration serves its use case quite well at the moment. If you disagree please feel free to make a ticket, I'd love to hear your thoughts.
+
 ## Parameters
 
 The `@bug_buddy` decorator accepts the following parameters:
@@ -77,3 +92,7 @@ Bug Buddy has the following features:
 - It automatically creates a formatted issue for the exception, including the traceback, the code snippet, and the environment information.
 - It tags the issue with exception type encountered.
 - It caches the exceptions locally in a JSON file stored in `$HOME`, so you can access them offline or delete them if needed.
+
+## Contribute
+
+Contributions are welcome! Please feel free to contribute at https://github.com/spencerseale/bugbuddy

@@ -42,14 +42,29 @@ class Issue:
 
     @staticmethod
     def _jdump(contents: list[dict[str, any]], handler: io.TextIOWrapper) -> str:
-        """Dump to JSON."""
+        """Dump to JSON.
+
+        Args:
+            contents: contents to dump.
+            handler: file handler.
+
+        Returns:
+            JSON string.
+        """
 
         json.dump(
             contents, handler, indent=4, sort_keys=False, default=str, separators=(",", ": ")
         )
 
     def cache(self, cache: str = ".bug_buddy.cache") -> str:
-        """Append to a local cache file."""
+        """Append to a local cache file.
+
+        Args:
+            cache: cache file name.
+
+        Returns:
+            JSON string.
+        """
 
         cleaned = self._clean()
 
@@ -71,7 +86,7 @@ class Issue:
 
 
 @define
-class GitlabIssuesApi:
+class GitlabIssuesClient:
     """GitLab Project-pinned Issues API."""
 
     url: str = "https://gitlab.com/api/v4"

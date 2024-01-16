@@ -1,3 +1,3 @@
-from bug_buddy.listener import bug_buddy
+from bug_buddy.bb import bug_buddy
 
 __all__ = ["bug_buddy"]
