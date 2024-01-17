@@ -6,7 +6,7 @@ It is primarily a decorator that will locally cache exceptions and, if specified
 
 ## Installation
 
-![Version](https://img.shields.io/badge/version-1.0.3-blue)
+![Version](https://img.shields.io/badge/version-1.0.4-blue)
 [![python](https://img.shields.io/badge/Python-3.10-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
 [![Packaged with Poetry](https://img.shields.io/badge/packaging-poetry-cyan.svg?style=flat-square&logo=python)](https://python-poetry.org/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
