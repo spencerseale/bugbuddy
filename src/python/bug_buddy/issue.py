@@ -20,8 +20,8 @@ class Issue:
     """Issue title."""
     state: str
     """Issue state."""
-    project_id: int
-    """Remote project ID."""
+    project_id: Union[int, str]
+    """Remote project ID or Linear team ID."""
     author: tuple[str, str, str]
     """Author name, username, and state."""
     created_at: str
@@ -83,6 +83,208 @@ class Issue:
         except FileNotFoundError:
             with open(cache, "w") as f:
                 Issue._jdump([cleaned], f)
+
+
+@define
+class LinearIssuesClient:
+    """Linear Issues API using GraphQL."""
+
+    url: str = "https://api.linear.app/graphql"
+    """Linear GraphQL API URL."""
+
+    token: str = field(converter=str)
+    """Linear API key."""
+
+    @token.default
+    def _token_default(self) -> str:
+        return os.environ["LINEAR_API_KEY"]
+
+    logger: Logger = field()
+    """Logging instance."""
+
+    @logger.default
+    def _logger_default(self) -> Logger:
+        return getLogger(__name__)
+
+    def _get_label_id(self, team_id: str, label_name: str) -> list[str]:
+        """Look up a label ID by name for a team.
+
+        Args:
+            team_id: Linear team ID.
+            label_name: Label name to look up (e.g., "Bug").
+
+        Returns:
+            List containing the label ID, or empty list if not found.
+        """
+
+        query = """
+        query GetTeamLabels($teamId: String!) {
+            team(id: $teamId) {
+                labels {
+                    nodes {
+                        id
+                        name
+                    }
+                }
+            }
+        }
+        """
+
+        resp = requests.post(
+            self.url,
+            headers={
+                "Authorization": self.token,
+                "Content-Type": "application/json",
+            },
+            json={
+                "query": query,
+                "variables": {"teamId": team_id},
+            },
+        )
+
+        resp.raise_for_status()
+        result = resp.json()
+
+        if "errors" in result:
+            self.logger.warning(f"Could not fetch labels: {result['errors']}")
+            return []
+
+        labels = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
+        for label in labels:
+            if label.get("name") == label_name:
+                return [label.get("id")]
+
+        self.logger.warning(f"Label '{label_name}' not found for team {team_id}")
+        return []
+
+    @staticmethod
+    def _normalize_itype(response_map: Mapping[str, any], team_id: str) -> Issue:
+        """Normalize issue type from Linear response.
+
+        Args:
+            response_map: response mapping from Linear API.
+            team_id: Linear team ID.
+
+        Returns:
+            Normalized Issue type.
+        """
+
+        return Issue(
+            id=response_map.get("number", 0),
+            title=response_map.get("title", ""),
+            state=response_map.get("state", {}).get("name", "unknown"),
+            project_id=team_id,
+            author=(
+                response_map.get("creator", {}).get("name", "unknown"),
+                response_map.get("creator", {}).get("email", "unknown"),
+                "active",
+            ),
+            created_at=response_map.get("createdAt", ""),
+            updated_at=response_map.get("updatedAt", ""),
+            description=response_map.get("description", ""),
+            labels=[
+                label.get("name", "") for label in response_map.get("labels", {}).get("nodes", [])
+            ],
+        )
+
+    def create_issue(
+        self,
+        team_id: str,
+        description: str,
+        labels: Optional[list[str]] = None,
+        title: Optional[str] = None,
+        func_name: Optional[str] = None,
+        project_id: Optional[str] = None,
+    ) -> Issue:
+        """Create an issue in Linear.
+
+        Args:
+            team_id: Linear team ID.
+            description: issue description.
+            labels: label IDs to apply (Linear requires UUIDs). If None, looks up "Bug" label.
+            title: issue title.
+            func_name: name of the decorated function.
+            project_id: Linear project ID to add the issue to (optional).
+
+        Returns:
+            Created issue, normalized.
+        """
+
+        if title is None:
+            if func_name:
+                title = f"BugBuddy-{func_name}-" + str(uuid.uuid4())
+            else:
+                title = "BugBuddy-" + str(uuid.uuid4())
+
+        # If no labels provided, look up the "Bug" label ID for this team
+        if labels is None:
+            labels = self._get_label_id(team_id, "Bug")
+
+        # GraphQL mutation to create an issue
+        mutation = """
+        mutation CreateIssue($teamId: String!, $title: String!, $description: String, $labelIds: [String!], $projectId: String) {  
+            issueCreate(input: {
+                teamId: $teamId
+                title: $title
+                description: $description
+                labelIds: $labelIds
+                projectId: $projectId
+            }) {
+                success
+                issue {
+                    id
+                    identifier
+                    number
+                    title
+                    description
+                    createdAt
+                    updatedAt
+                    state {
+                        name
+                    }
+                    creator {
+                        name
+                        email
+                    }
+                    labels {
+                        nodes {
+                            name
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        variables = {
+            "teamId": team_id,
+            "title": title,
+            "description": description,
+            "labelIds": labels,
+            "projectId": project_id,
+        }
+
+        resp = requests.post(
+            self.url,
+            headers={
+                "Authorization": self.token,
+                "Content-Type": "application/json",
+            },
+            json={
+                "query": mutation,
+                "variables": variables,
+            },
+        )
+
+        resp.raise_for_status()
+        self.logger.debug("Response code: %s", resp.status_code)
+
+        result = resp.json()
+        if "errors" in result:
+            raise ValueError(f"Linear API error: {result['errors']}")
+
+        issue_data = result.get("data", {}).get("issueCreate", {}).get("issue", {})
+        return self._normalize_itype(issue_data, team_id)
 
 
 @define
@@ -183,6 +385,7 @@ class GitlabIssuesClient:
         description: str,
         labels: Optional[list[str]] = None,
         title: Optional[str] = None,
+        func_name: Optional[str] = None,
     ) -> Issue:
         """Create an issue.
 
@@ -191,12 +394,17 @@ class GitlabIssuesClient:
             description: issue description.
             labels: issue labels.
             title: issue title.
+            func_name: name of the decorated function.
 
         Returns:
             Created issue, normalized.
         """
 
-        title = title or "BugBuddy-" + str(uuid.uuid4())
+        if title is None:
+            if func_name:
+                title = f"BugBuddy-{func_name}-" + str(uuid.uuid4())
+            else:
+                title = "BugBuddy-" + str(uuid.uuid4())
         # always include BugBuddy label
         if labels is None:
             labels = ["BugBuddy"]

@@ -8,7 +8,7 @@ from typing import Optional
 from attrs import define
 
 from bug_buddy._config import BugBuddyConfig
-from bug_buddy.issue import GitlabIssuesClient
+from bug_buddy.integration import Integration
 from bug_buddy.listener import Listener
 
 
@@ -46,14 +46,6 @@ class BugBuddyInjector:
 
         return logger
 
-    def runner(self) -> None:
-        """Runner injection.
-
-        TODO: implement if CLI is added.
-        """
-
-        pass
-
     def config(self) -> BugBuddyConfig:
         """Config injection.
 
@@ -63,49 +55,15 @@ class BugBuddyInjector:
 
         return BugBuddyConfig()
 
-    def remote_client(
-        self,
-        gitlab: bool = False,
-        github: bool = False,
-        logger: Optional[Logger] = None,
-    ) -> Optional[GitlabIssuesClient]:
-        """Git remote issue tracker API injection.
-
-        Args:
-            gitlab: whether to use GitLab API.
-            github: whether to use GitHub API.
-            logger: logger instance.
-
-        Returns:
-            Remote API client.
-        """
-
-        if not logger:
-            config = self.config()
-            logger = self.logger(config.log_level)
-
-        if gitlab:
-            return GitlabIssuesClient(logger=logger)
-        elif github:
-            logger.warning("Github not yet supported.")
-            return None
-        else:
-            logger.warning("No remote issue tracker specified.")
-            return None
-
     def listener(
         self,
-        project_id: Optional[int] = None,
-        gitlab: bool = False,
-        github: bool = False,
+        integration: Optional[Integration] = None,
         logger: Optional[Logger] = None,
     ) -> Listener:
         """Listener injection.
 
         Args:
-            project_id: project ID.
-            gitlab: whether to use GitLab API.
-            github: whether to use GitHub API.
+            integration: Issue tracker integration configuration.
             logger: logger instance.
 
         Returns:
@@ -117,8 +75,6 @@ class BugBuddyInjector:
             logger = self.logger(config.log_level)
 
         return Listener(
-            project_id=project_id,
-            gitlab=gitlab,
-            github=github,
+            integration=integration,
             logger=logger,
         )
