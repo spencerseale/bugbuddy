@@ -1,15 +1,15 @@
+import inspect
 import traceback
 from functools import wraps
 from typing import Any, Optional
 
 from bug_buddy._di_container import BugBuddyInjector
+from bug_buddy.integration import Integration
 
 
 def bug_buddy(
     runner: Optional[callable] = None,
-    project_id: Optional[int] = None,
-    gitlab: bool = False,
-    github: bool = False,
+    integration: Optional[Integration] = None,
 ) -> Any:
     """Decorator for bug_buddy.
 
@@ -17,9 +17,8 @@ def bug_buddy(
 
     Args:
         runner: main/runner function.
-        project_id: Remote project ID for Github or Gitlab.
-        gitlab: whether to create a GitLab issue if bug detected.
-        github: whether to create a GitHub issue if bug detected.
+        integration: Issue tracker integration configuration (GitlabIntegration,
+            GithubIntegration, or LinearIntegration).
 
     Returns:
         Decorated function's return value.
@@ -35,9 +34,8 @@ def bug_buddy(
             # inject dependencies
             config = di.config()
             logger = di.logger(config.log_level)
-            listener = di.listener(project_id, gitlab, github, logger=logger)
+            listener = di.listener(integration=integration, logger=logger)
 
-            # listener = Listener(project_id, gitlab, github)
             logger.info("listening for " + listener.mascot)
 
             try:
@@ -49,13 +47,22 @@ def bug_buddy(
                 # filter traceback for all components
                 trace: list[traceback.FrameSummary] = traceback.extract_tb(e.__traceback__)
 
-                remote = di.remote_client(gitlab, github, logger=logger)
-                issue = listener.record(trace, exception=type(e), remote=remote)
+                # get source code of decorated function
+                try:
+                    func_source = inspect.getsource(runner)
+                except (OSError, TypeError):
+                    func_source = None
+
+                issue = listener.record(
+                    trace,
+                    exception=type(e),
+                    func_name=runner.__name__,
+                    func_source=func_source,
+                )
 
                 detection = listener.mascot + " cached."
-                if project_id:
-                    remote = "Gitlab" if listener.gitlab else "Github"
-                    detection += f" Tracking at {remote} issue {issue.id}."
+                if integration:
+                    detection += f" Tracking at {integration.name} issue {issue.id}."
 
                 logger.info(detection)
 
